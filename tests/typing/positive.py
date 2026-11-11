@@ -1,9 +1,16 @@
+from typing import Literal
+
 from sortedcollections import (
     IndexableDict,
     IndexableSet,
     ItemSortedDict,
+    NearestDict,
+    OrderedDict,
+    OrderedSet,
+    SegmentList,
     ValueSortedDict,
 )
+from sortedcollections.ordereddict import ItemsView, KeysView, ValuesView
 from typing_extensions import assert_type
 
 ids = IndexableDict({"a": 1})
@@ -59,3 +66,39 @@ objects = IndexableDict({key: 1})
 assert_type(objects, IndexableDict[Key, int])
 assert_type(IndexableSet([key]), IndexableSet[Key])
 assert_type(objects.pop(key), int)
+
+
+nearest = NearestDict({1.0: "a"}, rounding=NearestDict.NEAREST_NEXT)
+assert_type(nearest, NearestDict[float, str])
+assert_type(nearest.nearest_key(2.0), float)
+assert_type(nearest[2.0], str)
+nearest.rounding = NearestDict.NEAREST_PREV
+ordered = OrderedDict({"a": 1})
+assert_type(ordered, OrderedDict[str, int])
+assert_type(ordered.keys(), KeysView[str])
+assert_type(ordered.values(), ValuesView[int])
+assert_type(ordered.items(), ItemsView[str, int])
+assert_type(ordered.keys()[0], str)
+assert_type(ordered.values()[:], list[int])
+assert_type(ordered.items()[0], tuple[str, int])
+assert_type(ordered.popitem(False), tuple[str, int])
+assert_type(ordered.copy(), OrderedDict[str, int])
+assert_type(OrderedDict.fromkeys([1], "x"), OrderedDict[int, str])
+assert_type(OrderedDict.fromkeys([1]), OrderedDict[int, None])
+ordered_set = OrderedSet(["a"])
+assert_type(ordered_set, OrderedSet[str])
+assert_type(ordered_set[0], str)
+assert_type(ordered_set.count("a"), bool)
+assert_type(ordered_set.index("a"), int)
+ordered_set.add("b")
+segment = SegmentList([object()])
+assert_type(segment, SegmentList[object])
+assert_type(segment[0], object)
+assert_type(segment[:], list[object])
+segment[0] = object()
+segment.append(object())
+segment.extend([object()])
+segment.insert(0, object())
+segment.reverse()
+segment.sort(key=id)
+assert_type(SegmentList.zero(None), Literal[0])

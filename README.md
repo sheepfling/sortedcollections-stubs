@@ -3,21 +3,31 @@
 Experimental, **partial** type stubs targeting `sortedcollections==2.1.0`.
 This package is not published and does not change runtime behavior.
 
-## First tranche
+## Current scope
 
-Consumer-tested generic construction, assignment, lookup, and indexed
-views for `IndexableDict`, `IndexableSet`, `ItemSortedDict`, and
-`ValueSortedDict`. The stub inherits the existing `sortedcontainers-stubs`
-contracts rather than duplicating that separate package.
+All eight collection classes have explicit generic declarations: `IndexableDict`,
+`IndexableSet`, `ItemSortedDict`, `ValueSortedDict`, `NearestDict`, `OrderedDict`,
+`OrderedSet`, and `SegmentList`. The four `Sorted*` re-exports use the separate
+`sortedcontainers-stubs` package rather than duplicating its declarations.
 
-`NearestDict`, `OrderedDict`, `OrderedSet`, and `SegmentList` are explicitly incomplete. Importing those names
-is not a claim of type coverage. This is not a complete exported-API contract.
-Inherited factory methods such as `fromkeys`, unusual subclass behavior,
-comparability bounds and all inherited sorting methods need further review.
+Consumer tests cover constructors, key/value propagation, subclass construction,
+indexed mapping views, nearest-key lookup, ordered-set operations, and segment
+list mutation. Explicitly unsupported `SegmentList` methods return `Never` and
+are marked deprecated; consumers must enable their checker's deprecated-use
+reporting to receive a diagnostic for calls to those methods.
+
+This remains **partial**, not an exhaustive exported-API guarantee. Inherited
+factories (especially `fromkeys` on recipe subclasses), dynamic key-range
+methods, uncommon constructor combinations, and unusual subclass behavior need
+further review. Comparability and subtraction requirements for nearest-key
+lookup cannot currently be expressed by this package's simple key bound; a
+hashable key alone does not guarantee runtime success. No declarations use an
+`Incomplete` escape hatch for a collection class.
 
 The constructor declarations override the dependency's factory `__new__`
 return, so derived collections retain their actual class and generic arguments.
-Runtime-derived classes and key/value assignment are tested separately.
+Runtime behavior and type-checker behavior are tested separately. Where runtime
+behavior is defective, an intended return type is not a promise of success.
 
 ## Development
 
@@ -44,11 +54,17 @@ alpha prototype as complete.
 
 ## Known runtime defects exposed by contract tests
 
-With the inspected upstream 2.1.0 source snapshot and the
-`sortedcontainers` v2.4.0 tagged source (not installed PyPI runtime wheels),
-`IndexableDict.copy()` and `IndexableSet.copy()` (including `copy.copy`) raise
-`TypeError`: inherited copy implementations forward a key function that the
-subclass constructor already supplies. The stubs retain the intended inherited
-`Self` return contract; they do not promise these runtime operations succeed.
-Two strict expected-failure tests preserve the desired behavior and expose when
-a runtime fix lands. `ItemSortedDict` and `ValueSortedDict` copies passed.
+Verification uses the upstream 2.1.0 public source snapshot (with the separate
+`OrderedSet.index` repair) and the `sortedcontainers` v2.4.0 tagged source, not
+installed PyPI runtime wheels. Five strict expected-failure cases record:
+
+- `IndexableDict.copy()` forwards an extra key-function argument and raises.
+- `IndexableSet.copy()` forwards a duplicate key-function argument and raises.
+- `SegmentList.copy()` forwards an unsupported `key` keyword and raises.
+- `NearestDict.copy()` silently resets a non-default rounding policy.
+- `OrderedSet` slicing raises `TypeError` rather than returning a sequence.
+
+The copy problems also occur through `copy.copy`. These stubs preserve intended
+return contracts without pretending to repair runtime behavior. Strict xfails
+make a runtime repair visible as an unexpected pass, requiring an explicit test
+update. `ItemSortedDict` and `ValueSortedDict` copies passed the initial probes.

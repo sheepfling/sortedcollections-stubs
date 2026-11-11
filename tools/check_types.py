@@ -31,10 +31,14 @@ def main() -> int:
             "include": [],
             "extraPaths": paths[1:] if name == "stubs" else paths,
             "reportMissingModuleSource": False,
+            "reportDeprecated": "error",
         }
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "pyrightconfig.json"
-            config["include"] = [os.path.relpath(fixture, temp)]
+            config["include"] = [
+                os.path.relpath(fixture, temp)
+                + ("/**/*.pyi" if name == "stubs" else "")
+            ]
             path.write_text(json.dumps(config))
             result = subprocess.run(
                 ["pyright", "-p", str(path), "--outputjson"],
