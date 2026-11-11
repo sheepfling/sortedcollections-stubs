@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sortedcollections-stubs"
+version = "2.1.0.0a0"
+description = "Experimental partial type stubs for sortedcollections 2.1.0"
+requires-python = ">=3.10"
+dependencies = ["sortedcollections==2.1.0", "sortedcontainers-stubs>=2.4.3,<2.5", "typing-extensions>=4.6"]
+readme = "README.md"
+classifiers = ["Typing :: Stubs Only", "Development Status :: 3 - Alpha"]
+
+[tool.setuptools]
+package-dir = {"" = "stubs"}
+packages = ["sortedcollections-stubs"]
+
+[tool.setuptools.package-data]
+"sortedcollections-stubs" = ["*.pyi", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
