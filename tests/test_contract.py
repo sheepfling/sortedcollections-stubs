@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,10 @@ from sortedcollections import (
     IndexableDict,
     IndexableSet,
     ItemSortedDict,
+    NearestDict,
+    OrderedDict,
+    OrderedSet,
+    SegmentList,
     ValueSortedDict,
 )
 
@@ -71,8 +76,6 @@ def test_indexable_copy_preserves_type(mapping):
 
 
 def test_nearest_rounding_and_key_contract():
-    from sortedcollections import NearestDict
-
     mapping = NearestDict({1.0: "one", 3.0: "three"})
     assert mapping.nearest_key(2.1) == 3.0
     assert mapping[2.1] == "three"
@@ -85,8 +88,6 @@ def test_nearest_rounding_and_key_contract():
 
 
 def test_ordered_mapping_indexed_views_and_factories():
-    from sortedcollections import OrderedDict
-
     mapping = OrderedDict({"a": 1, "b": 2})
     assert mapping.keys()[0] == "a"
     assert mapping.values()[:] == [1, 2]
@@ -98,8 +99,6 @@ def test_ordered_mapping_indexed_views_and_factories():
 
 
 def test_ordered_set_sequence_and_boolean_count():
-    from sortedcollections import OrderedSet
-
     values = OrderedSet(["a", "b", "a"])
     assert list(values) == ["a", "b"]
     assert values[1] == "b"
@@ -115,14 +114,10 @@ def test_ordered_set_sequence_and_boolean_count():
     strict=True, reason="2.1.0 OrderedSet slice lookup uses a list as a mapping key"
 )
 def test_ordered_set_slice_returns_sequence():
-    from sortedcollections import OrderedSet
-
     assert OrderedSet(["a", "b"])[:] == ["a", "b"]
 
 
 def test_segment_mutation_and_key_sort():
-    from sortedcollections import SegmentList
-
     values = SegmentList([3, 1])
     values[0] = 2
     values.append(4)
@@ -151,15 +146,11 @@ def test_segment_mutation_and_key_sort():
     ],
 )
 def test_segment_explicitly_unsupported_methods(method):
-    from sortedcollections import SegmentList
-
     with pytest.raises(NotImplementedError):
         getattr(SegmentList([1]), method)(1)
 
 
 def test_segment_slice_assignment_is_explicitly_unsupported():
-    from sortedcollections import SegmentList
-
     with pytest.raises(NotImplementedError):
         SegmentList([1])[:] = [2]
 
@@ -168,15 +159,68 @@ def test_segment_slice_assignment_is_explicitly_unsupported():
     strict=True, reason="2.1.0 SegmentList copy forwards an unsupported key keyword"
 )
 def test_segment_copy_preserves_values():
-    from sortedcollections import SegmentList
-
     values = SegmentList([1, 2])
     assert values.copy() == [1, 2]
 
 
 @pytest.mark.xfail(strict=True, reason="2.1.0 NearestDict copy drops rounding policy")
 def test_nearest_copy_preserves_rounding():
-    from sortedcollections import NearestDict
-
     mapping = NearestDict({1.0: "one", 3.0: "three"}, rounding=NearestDict.NEAREST_PREV)
     assert mapping.copy().rounding == NearestDict.NEAREST_PREV
+
+
+@pytest.mark.parametrize("factory", [IndexableDict, ValueSortedDict, NearestDict])
+def test_inherited_fromkeys_preserves_class_and_keyword(factory):
+    values = factory.fromkeys(iterable=[1, 2], value="x")
+    assert type(values) is factory
+    assert dict(values) == {1: "x", 2: "x"}
+    assert factory.fromkeys([1])[1] is None
+
+
+def test_hashable_factory_keys_do_not_need_ordering():
+    keys = [object(), object()]
+    for factory in (IndexableDict, ValueSortedDict):
+        values = factory.fromkeys(keys, 1)
+        assert dict(values) == dict.fromkeys(keys, 1)
+
+
+def test_item_fromkeys_cannot_supply_required_callback():
+    with pytest.raises(AssertionError):
+        ItemSortedDict.fromkeys([1], "x")
+
+
+def test_value_fromkeys_needs_comparable_values():
+    with pytest.raises(TypeError):
+        ValueSortedDict.fromkeys([1, 2])
+
+
+def test_ordered_mapping_keyword_operations():
+    values = OrderedDict({"a": 1})
+    assert values.pop(key="a", default=None) == 1
+    assert values.pop(key="a", default=None) is None
+    assert values.setdefault(key="b", default=2) == 2
+    assert values.setdefault(key="c", default=None) is None
+    assert list(values.items()) == [("b", 2), ("c", None)]
+    values._check()
+
+
+def test_ordered_set_count_keyword():
+    values = OrderedSet([1])
+    assert values.count(key=1) is True
+    with pytest.raises(TypeError):
+        values.count(value=1)
+
+
+@pytest.mark.parametrize("factory", [IndexableSet, SegmentList])
+def test_sequence_initializer_none_and_rejected_key(factory):
+    assert list(factory(None)) == []
+    with pytest.raises(TypeError):
+        factory([1], key=hash)
+
+
+def test_item_deepcopy_preserves_class_and_independent_values():
+    values = ItemSortedDict(lambda key, value: len(value), {"a": [1]})
+    copied = deepcopy(values)
+    assert type(copied) is ItemSortedDict
+    copied["a"].append(2)
+    assert values["a"] == [1]

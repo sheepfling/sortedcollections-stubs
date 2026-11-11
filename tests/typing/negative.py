@@ -16,9 +16,9 @@ values = ValueSortedDict[str, int]({"a": 1})
 values["a"] = "bad"  # expected-error
 IndexableSet[int](["bad"])  # expected-error
 ItemSortedDict[str, int]()  # expected-error
-IndexableDict[int, int](a=1)  # expected-error
-ValueSortedDict[int, int](a=1)  # expected-error
-IndexableDict[str, int]({"a": "bad"})  # expected-error
+IndexableDict[int, int](a=1)  # expected-error; mypy-known-gap
+ValueSortedDict[int, int](a=1)  # expected-error; mypy-known-gap
+IndexableDict[str, int]({"a": "bad"})  # expected-error; mypy-known-gap
 IndexableSet[int]([1]).add("bad")  # expected-error
 
 
@@ -33,3 +33,16 @@ SegmentList[int]([1])[0] = "bad"  # expected-error
 
 def unsupported_segment_operation(segment: SegmentList[int]) -> None:
     segment.add(1)  # expected-error
+
+
+def unsupported_factory() -> None:
+    ItemSortedDict.fromkeys([1], "x")  # expected-error
+
+
+ordered = OrderedDict[str, int]()
+ordered.pop(key=1)  # expected-error
+ordered.setdefault(key="a", default="bad")  # expected-error
+OrderedSet[int]().count(value=1)  # expected-error
+IndexableSet[int]([1], key=hash)  # expected-error
+SegmentList[int]([1], key=hash)  # expected-error
+IndexableDict.fromkeys(seq=[1], value="x")  # expected-error

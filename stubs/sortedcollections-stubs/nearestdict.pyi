@@ -6,6 +6,7 @@ from sortedcontainers import SortedDict
 from typing_extensions import Self, TypeAlias
 
 _K = TypeVar("_K", bound=Hashable)
+_K2 = TypeVar("_K2", bound=Hashable)
 _V = TypeVar("_V")
 _V2 = TypeVar("_V2")
 _Rounding: TypeAlias = Literal[-1, 0, 1]
@@ -58,3 +59,12 @@ class NearestDict(SortedDict[_K, _V]):
     ) -> None: ...
     def nearest_key(self, request: _K) -> _K: ...
     def __getitem__(self, request: _K) -> _V: ...
+    @classmethod
+    @overload
+    def fromkeys(cls, iterable: Iterable[_K2]) -> NearestDict[_K2, None]: ...
+    @classmethod
+    @overload
+    # The dependency calls this parameter seq; runtime accepts iterable instead.
+    def fromkeys(  # pyright: ignore[reportIncompatibleMethodOverride]
+        cls, iterable: Iterable[_K2], value: _V2,
+    ) -> NearestDict[_K2, _V2]: ...

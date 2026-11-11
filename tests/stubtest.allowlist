@@ -1,0 +1,3 @@
+# SegmentList inherits a __new__ that accepts key, but its __init__ rejects key.
+# The narrowed factory declaration models valid full construction; tested at runtime.
+sortedcollections.recipes.SegmentList.__new__

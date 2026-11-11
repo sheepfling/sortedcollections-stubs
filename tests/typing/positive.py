@@ -102,3 +102,30 @@ segment.insert(0, object())
 segment.reverse()
 segment.sort(key=id)
 assert_type(SegmentList.zero(None), Literal[0])
+
+assert_type(IndexableDict.fromkeys(iterable=[key], value=1), IndexableDict[Key, int])
+assert_type(IndexableDict.fromkeys([key]), IndexableDict[Key, None])
+assert_type(ValueSortedDict.fromkeys(iterable=[key], value=1), ValueSortedDict[Key, int])
+assert_type(ValueSortedDict.fromkeys([key]), ValueSortedDict[Key, None])
+assert_type(NearestDict.fromkeys(iterable=[1.0], value="a"), NearestDict[float, str])
+assert_type(NearestDict.fromkeys([1.0]), NearestDict[float, None])
+assert_type(items.__deepcopy__({}), ItemSortedDict[str, int])
+assert_type(ordered.pop(key="a", default=None), int | None)
+assert_type(ordered.setdefault(key="b", default=2), int)
+nullable = OrderedDict[str, int | None]()
+assert_type(nullable.setdefault(key="a", default=None), int | None)
+assert_type(ordered_set.count(key="a"), bool)
+assert_type(SegmentList[int](None), SegmentList[int])
+assert_type(IndexableSet[int](None), IndexableSet[int])
+
+
+class SpecialSet(IndexableSet[str]):
+    pass
+
+
+class SpecialSegment(SegmentList[str]):
+    pass
+
+
+assert_type(SpecialSet(["a"]), SpecialSet)
+assert_type(SpecialSegment(["a"]), SpecialSegment)
