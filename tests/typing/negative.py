@@ -57,3 +57,14 @@ plain_nearest = NearestDict({1: "a"})
 plain_nearest.bisect_key_left(1)  # expected-error
 none_nearest = NearestDict(None, {1: "a"})
 none_nearest.irange_key()  # expected-error
+
+ids | [("a", 1)]  # expected-error
+[("a", 1)] | ids  # expected-error
+ids | {"a": "bad"}  # expected-error
+{"a": "bad"} | ids  # expected-error
+ids |= [("a", "bad")]  # expected-error
+values | {"a": "bad"}  # expected-error
+values |= {"a": "bad"}  # expected-error
+plain_nearest | {2: 3}  # expected-error
+plain_nearest |= [(2, 3)]  # expected-error
+SegmentList[int]([1]) * 1.5  # expected-error

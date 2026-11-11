@@ -1,4 +1,4 @@
-from collections.abc import Callable, Hashable, Iterable
+from collections.abc import Callable, Hashable, Iterable, Mapping
 from typing import ClassVar, Literal, TypeVar, overload
 
 from _typeshed import SupportsKeysAndGetItem, SupportsRichComparison
@@ -16,6 +16,12 @@ class NearestDict(SortedDict[_K, _V]):
     NEAREST: ClassVar[Literal[0]]
     NEAREST_NEXT: ClassVar[Literal[1]]
     rounding: _Rounding
+    # Keep the operand within the collection's key/value and callback domain.
+    def __or__(self, other: Mapping[_K, _V]) -> Self: ...
+    def __ror__(self, other: Mapping[_K, _V]) -> Self: ...
+    def __ior__(
+        self, other: SupportsKeysAndGetItem[_K, _V] | Iterable[tuple[_K, _V]],
+    ) -> Self: ...
     def __new__(cls, *args: object, **kwargs: object) -> Self: ...
     @overload
     def __init__(self, *, rounding: _Rounding = ...) -> None: ...

@@ -89,8 +89,9 @@ strict audit of its source with MyPy 2.4.1 reports its own `ItemsView` inheritan
 conflict and unused ignore; ordinary installed-package consumers silence
 dependency-internal diagnostics, as MyPy normally does.
 
-A separate upstream runtime fix addresses `OrderedSet.index` after deletion.
-Installing these stubs **cannot** fix that runtime bug.
+The local bundled fork includes separate regression-backed runtime repairs for
+these defects, including OrderedSet.index after deletion and OrderedDict in-place
+union. Installing these standalone stubs **cannot** fix runtime behavior.
 
 ## Provenance and limits
 
@@ -101,16 +102,20 @@ commit `1a6a3457c94ee994d50514a59643ff7f55c7146b` (version 2.1.0) and public
 
 Local verification used separately retrieved public sources because direct
 PyPI access was blocked. Pyright 1.1.414, MyPy 2.4.1, and stubtest were verified
-on macOS, including an installed built wheel. Runtime tests passed on Python
-3.10 and 3.13. Dependency installation from PyPI and a cross-platform matrix
+on macOS, including an installed built wheel. Runtime tests pass on macOS
+Python 3.10 through 3.15 (110 passed and 25 strict released-runtime xfails on each
+interpreter). Dependency installation from PyPI and a cross-platform matrix
 remain unverified. Do not publish or treat this alpha prototype as complete.
 
 ## Known runtime defects exposed by contract tests
 
 Verification uses the upstream 2.1.0 public source snapshot and the
 `sortedcontainers` v2.4.0 tagged source, not
-installed PyPI runtime wheels. Fifteen strict expected-failure cases record:
+installed PyPI runtime wheels. Twenty-five strict expected-failure cases record:
 
+- Mapping unions on IndexableDict, ItemSortedDict, and ValueSortedDict raise;
+  NearestDict unions reset rounding. Both directions are recorded.
+- OrderedDict in-place union adds entries without updating its ordered indexes.
 - `IndexableDict.copy()` forwards an extra key-function argument and raises.
 - `IndexableSet.copy()` forwards a duplicate key-function argument and raises.
 - `SegmentList.copy()` forwards an unsupported `key` keyword and raises.
@@ -126,3 +131,15 @@ The copy problems also occur through `copy.copy`. These stubs preserve intended
 return contracts without pretending to repair runtime behavior. Strict xfails
 make a runtime repair visible as an unexpected pass, requiring an explicit test
 update. `ItemSortedDict` and `ValueSortedDict` copies passed the initial probes.
+
+## Dictionary union contracts
+
+The four sorted mapping subclasses explicitly declare forward, reflected, and
+in-place unions because the external dependency does not declare those inherited
+operators. Signatures conservatively keep keys and values within the existing
+generic types, preserving subclass identity and callback domains. They do not
+promise widening to unrelated key/value types. In-place unions accept mappings
+or iterable pairs. OrderedDict nonmutating unions return a built-in dict.
+SegmentList forward, reflected, and in-place repetition accept integer-index
+objects. Tests distinguish the released forward-operation constructor defect
+from the working reflected and in-place paths.

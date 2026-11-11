@@ -387,3 +387,85 @@ def test_comparison_domains_must_match_instance_order(factory, bound, method):
             list(values.irange_key(min_key=bound))
         else:
             getattr(values, method)(bound)
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [IndexableDict, ValueSortedDict,
+     lambda entries: ItemSortedDict(lambda key, value: value, entries),
+     lambda entries: NearestDict(entries, rounding=NearestDict.NEAREST_PREV)],
+)
+@pytest.mark.parametrize("reflected", [False, True])
+@pytest.mark.xfail(
+    strict=True,
+    reason="2.1.0 mapping unions forward invalid constructors or discard rounding",
+)
+def test_mapping_union_preserves_collection_contract(factory, reflected):
+    mapping = factory({1: 1, 3: 3})
+    other = {3: 30, 4: 4}
+    result = other | mapping if reflected else mapping | other
+    assert type(result) is type(mapping)
+    assert dict(result) == {1: 1, 3: 3 if reflected else 30, 4: 4}
+    if isinstance(mapping, NearestDict):
+        assert result.rounding == mapping.rounding
+    assert dict(mapping) == {1: 1, 3: 3}
+    assert other == {3: 30, 4: 4}
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [IndexableDict, ValueSortedDict,
+     lambda entries: ItemSortedDict(lambda key, value: value, entries), NearestDict],
+)
+def test_sorted_mapping_inplace_union_preserves_identity(factory):
+    mapping = factory({1: 1})
+    alias = mapping
+    mapping |= iter([(2, 2)])
+    assert mapping is alias
+    assert list(mapping.items()) == [(1, 1), (2, 2)]
+
+
+@pytest.mark.xfail(
+    strict=True, reason="2.1.0 OrderedDict in-place union corrupts ordered indexes"
+)
+def test_ordered_mapping_inplace_union_preserves_views():
+    mapping = OrderedDict(a=1)
+    alias = mapping
+    mapping |= [("b", 2)]
+    assert mapping is alias
+    assert len(mapping) == 2
+    assert mapping.items()[:] == [("a", 1), ("b", 2)]
+    assert mapping.pop("b") == 2
+
+
+def test_ordered_mapping_nonmutating_union_returns_builtin_dict():
+    mapping = OrderedDict(a=1)
+    assert type(mapping | {"b": 2}) is dict
+    assert type({"b": 2} | mapping) is dict
+    assert mapping.items()[:] == [("a", 1)]
+
+
+class Repetitions:
+    def __index__(self):
+        return 2
+
+
+@pytest.mark.xfail(
+    strict=True, raises=TypeError,
+    reason="2.1.0 SegmentList forward repetition forwards unsupported key argument",
+)
+def test_segment_forward_integer_index_repetition():
+    result = SegmentList([1, 2]) * Repetitions()
+    assert type(result) is SegmentList
+    assert list(result) == [1, 2, 1, 2]
+
+
+def test_segment_reflected_and_inplace_integer_index_repetition():
+    values = SegmentList([1, 2])
+    result = Repetitions() * values
+    assert type(result) is SegmentList
+    assert list(result) == [1, 2, 1, 2]
+    alias = values
+    values *= Repetitions()
+    assert values is alias
+    assert list(values) == [1, 2, 1, 2]

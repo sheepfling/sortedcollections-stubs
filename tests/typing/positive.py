@@ -179,3 +179,40 @@ class SpecialNearest(NearestDict[int, str]):
 assert_type(NearestDict(order_numbers, {1: "a"}), NearestDict[int, str])
 assert_type(SpecialNearest({1: "a"}), SpecialNearest)
 assert_type(SpecialNearest(order_numbers, {1: "a"}), SpecialNearest)
+
+assert_type(ids | {"b": 2}, IndexableDict[str, int])
+assert_type({"b": 2} | ids, IndexableDict[str, int])
+assert_type(items | {"b": 2}, ItemSortedDict[str, int])
+assert_type({"b": 2} | items, ItemSortedDict[str, int])
+assert_type(values | {"b": 2}, ValueSortedDict[str, int])
+assert_type({"b": 2} | values, ValueSortedDict[str, int])
+assert_type(nearest | {4.0: "d"}, NearestDict[float, str])
+assert_type({4.0: "d"} | nearest, NearestDict[float, str])
+assert_type(Special(a=1) | {"b": 2}, Special)
+assert_type({"b": 2} | Special(a=1), Special)
+assert_type(SpecialNearest({1: "a"}) | {2: "b"}, SpecialNearest)
+assert_type(ordered | {"b": 2}, dict[str, int])
+assert_type({"b": 2} | ordered, dict[str, int])
+ids |= [("c", 3)]
+items |= {"c": 3}
+values |= iter([("c", 3)])
+nearest |= [(4.0, "d")]
+ordered |= [("c", 3)]
+assert_type(ids, IndexableDict[str, int])
+assert_type(items, ItemSortedDict[str, int])
+assert_type(values, ValueSortedDict[str, int])
+assert_type(nearest, NearestDict[float, str])
+assert_type(ordered, OrderedDict[str, int])
+
+
+class Repetitions:
+    def __index__(self) -> int:
+        return 2
+
+
+assert_type(SpecialSegment(["a"]) * Repetitions(), SpecialSegment)
+assert_type(Repetitions() * SpecialSegment(["a"]), SpecialSegment)
+
+repeatable = SpecialSegment(["a"])
+repeatable *= Repetitions()
+assert_type(repeatable, SpecialSegment)
