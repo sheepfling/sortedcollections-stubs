@@ -52,3 +52,8 @@ IndexableSet[int]([1]).irange_key(min_key="bad")  # expected-error
 values.bisect_key_left(object())  # expected-error
 values.irange_key(max_key=object())  # expected-error
 OrderedSet[int]([1]) | [[1]]  # expected-error
+
+plain_nearest = NearestDict({1: "a"})
+plain_nearest.bisect_key_left(1)  # expected-error
+none_nearest = NearestDict(None, {1: "a"})
+none_nearest.irange_key()  # expected-error

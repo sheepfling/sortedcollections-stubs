@@ -126,15 +126,14 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     paths = [str(Path(path).resolve()) for path in args.extra_path]
     paths.insert(0, str(root / "stubs" if args.stubs is None else args.stubs.resolve()))
-    for name in ("positive", "negative", "stubs"):
+    for name in ("positive", "negative", "comparison_gaps", "stubs"):
         fixture = Path(paths[0]) if name == "stubs" else root / "tests" / "typing" / f"{name}.py"
         expected = set()
+        known_gaps = 0
         if name != "stubs":
-            expected = {
-                i
-                for i, line in enumerate(fixture.read_text(encoding="utf-8").splitlines())
-                if "# expected-error" in line
-            }
+            lines = fixture.read_text(encoding="utf-8").splitlines()
+            expected = {i for i, line in enumerate(lines) if "# expected-error" in line}
+            known_gaps = sum("comparison-known-gap" in line for line in lines)
         expected_files = len(list(fixture.rglob("*.pyi"))) if name == "stubs" else 1
         if expected_files < 1:
             raise SystemExit(f"{name}: no stub files found at {fixture}")
@@ -169,7 +168,8 @@ def main() -> int:
             print(result.stdout)
             print(result.stderr)
             raise SystemExit(f"{name}: invalid checker result: {exc}") from exc
-        print(f"{name}: {error_count} expected diagnostics; contract passed")
+        status = "known limitations reproduced" if name == "comparison_gaps" else "passed"
+        print(f"{name}: {error_count} expected diagnostics; {known_gaps} known gaps; {status}")
     return 0
 
 

@@ -326,3 +326,64 @@ def test_inherited_factory_runtime_subclass_preservation(factory):
     values = Child.fromkeys([1, 2], "x")
     assert type(values) is Child
     assert dict(values) == {1: "x", 2: "x"}
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: NearestDict({1: "a", 3: "b"}),
+        lambda: NearestDict(None, {1: "a", 3: "b"}),
+        lambda: NearestDict(key=1, a=2),
+    ],
+)
+def test_unkeyed_nearest_has_no_key_domain_helpers(factory):
+    values = factory()
+    assert values.key is None
+    for name in ("bisect_key", "bisect_key_left", "bisect_key_right", "irange_key"):
+        assert not hasattr(values, name)
+        with pytest.raises(AttributeError):
+            getattr(values, name)
+
+
+@pytest.mark.parametrize("list_domain", [False, True])
+def test_keyed_nearest_runtime_helpers_are_conditional(list_domain):
+    key = (lambda value: [value]) if list_domain else (lambda value: value)
+    values = NearestDict(key, {1: "a", 3: "b"})
+    bound = [2] if list_domain else 2
+    assert values.key is key
+    assert values.bisect_key_left(key=bound) == 1
+    assert values.bisect_key_right(key=bound) == 1
+    assert values.bisect_key(key=bound) == 1
+    assert list(values.irange_key(min_key=bound)) == [3]
+    assert list(values.irange_key(max_key=bound)) == [1]
+    assert list(values.irange_key(reverse=True)) == [3, 1]
+
+
+def test_keyed_nearest_subclass_preserves_runtime_identity():
+    class Child(NearestDict):
+        pass
+
+    values = Child(lambda value: [value], {1: "a", 3: "b"})
+    assert type(values) is Child
+    assert list(values.irange_key(min_key=[2])) == [3]
+
+
+@pytest.mark.parametrize(
+    "method", ["bisect_key", "bisect_key_left", "bisect_key_right", "irange_key"]
+)
+@pytest.mark.parametrize(
+    "factory, bound",
+    [
+        (lambda: ValueSortedDict({"a": 1, "b": 3}), "bad"),
+        (lambda: ValueSortedDict(len, {1: "a", 2: "bbb"}), "bad"),
+        (lambda: ValueSortedDict(lambda value: [value], {"a": 1, "b": 3}), 2),
+        (lambda: ItemSortedDict(lambda key, value: len(key) + value, {"a": 1, "b": 3}), "bad"),
+    ],
+)
+def test_comparison_domains_must_match_instance_order(factory, bound, method):
+    values = factory()
+    with pytest.raises(TypeError):
+        if method == "irange_key":
+            list(values.irange_key(min_key=bound))
+        else:
+            getattr(values, method)(bound)

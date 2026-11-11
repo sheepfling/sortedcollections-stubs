@@ -65,6 +65,22 @@ remain diagnostic-free and fails on unexpected errors or missing expected
 errors, so improvements in the checker require review instead of silently
 changing coverage. Do not interpret this as complete checker parity.
 
+`tests/typing/comparison_gaps.py` separately records four runtime-invalid
+comparison-domain calls accepted by both checkers. The matching runtime tests
+require `TypeError` for all four key-range helpers. Its checker output says
+"known limitations reproduced", not that those calls are valid. A future
+checker/type-model improvement that rejects them will fail this fixture until
+its expectations are deliberately updated.
+
+Conditional `NearestDict` helper access remains unsupported in the stubs.
+Ordinary and explicit-`None` constructors have no helpers at runtime; keyed
+constructors do, including unhashable comparison domains. Both cases and keyed
+subclass identity are tested. Experimental state parameters either break legacy
+two-parameter/subclass construction or admit unkeyed/wrong-domain calls through
+fallback overloads. No such fallback or unconditional helper declaration was
+added. Correct callback-domain inference therefore remains a documented limit,
+not a completed guarantee.
+
 Stubtest uses one narrowly documented exception: `SegmentList` inherits a
 `__new__` parameter named `key`, but the full constructor rejects that parameter
 in `__init__`. Both runtime and negative type-checker tests verify the rejection.

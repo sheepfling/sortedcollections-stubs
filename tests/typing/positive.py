@@ -165,3 +165,17 @@ assert_type(ordered_set - ["a"], OrderedSet[str])
 assert_type([1] - ordered_set, OrderedSet[int])
 assert_type(ordered_set ^ [1], OrderedSet[str | int])
 assert_type([1] ^ ordered_set, OrderedSet[str | int])
+
+
+
+def order_numbers(value: int) -> list[int]:
+    return [value]
+
+
+class SpecialNearest(NearestDict[int, str]):
+    pass
+
+
+assert_type(NearestDict(order_numbers, {1: "a"}), NearestDict[int, str])
+assert_type(SpecialNearest({1: "a"}), SpecialNearest)
+assert_type(SpecialNearest(order_numbers, {1: "a"}), SpecialNearest)

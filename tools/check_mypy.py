@@ -15,14 +15,16 @@ def main() -> int:
     parser.add_argument("--python-executable", type=Path)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    for name in ("positive", "negative"):
+    for name in ("positive", "negative", "comparison_gaps"):
         fixture = root / "tests" / "typing" / f"{name}.py"
         lines = fixture.read_text(encoding="utf-8").splitlines()
         expected = {
             number for number, line in enumerate(lines)
             if "# expected-error" in line and "mypy-known-gap" not in line
         }
-        known_gaps = sum("mypy-known-gap" in line for line in lines)
+        known_gaps = sum(
+            "mypy-known-gap" in line or "comparison-known-gap" in line for line in lines
+        )
         command = [
             sys.executable, "-m", "mypy", "--strict", "--python-version", "3.10",
             "--enable-error-code", "deprecated", "--no-incremental", "--output=json",
@@ -41,7 +43,8 @@ def main() -> int:
             print(result.stdout)
             print(result.stderr)
             raise SystemExit(f"{name}: invalid MyPy result: {exc}") from exc
-        print(f"{name}: {errors} expected diagnostics; {known_gaps} known MyPy gaps; passed")
+        status = "known limitations reproduced" if name == "comparison_gaps" else "passed"
+        print(f"{name}: {errors} expected diagnostics; {known_gaps} known MyPy gaps; {status}")
     return 0
 
 
