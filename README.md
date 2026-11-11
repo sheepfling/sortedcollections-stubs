@@ -22,9 +22,16 @@ inherited implementation cannot provide the required key function.
 `ValueSortedDict.fromkeys` requires comparable values when multiple keys are
 present, so its default `None` value can fail at runtime.
 
-This remains **partial**, not an exhaustive exported-API guarantee. Dynamic
-key-range methods, uncommon constructor combinations, and unusual subclass
-behavior need further review. Comparability and subtraction requirements for nearest-key
+Dynamic key-range helpers are covered on `IndexableDict`, `IndexableSet`,
+`ItemSortedDict`, and `ValueSortedDict`. Hash-ordered collections take integer
+hash bounds. Item/value callback bounds must be comparable with the callback's
+results; the annotations do not encode that relationship. Unhashable comparison
+keys, such as lists, remain valid. `NearestDict`'s conditionally present
+key-function helpers are not advertised on every instance.
+
+This remains **partial**, not an exhaustive exported-API guarantee. Uncommon
+constructor combinations and unusual subclass behavior need further review.
+Comparability and subtraction requirements for nearest-key
 lookup cannot currently be expressed by this package's simple key bound; a
 hashable key alone does not guarantee runtime success. No declarations use an
 `Incomplete` escape hatch for a collection class.
@@ -86,13 +93,18 @@ remain unverified. Do not publish or treat this alpha prototype as complete.
 
 Verification uses the upstream 2.1.0 public source snapshot and the
 `sortedcontainers` v2.4.0 tagged source, not
-installed PyPI runtime wheels. Five strict expected-failure cases record:
+installed PyPI runtime wheels. Fifteen strict expected-failure cases record:
 
 - `IndexableDict.copy()` forwards an extra key-function argument and raises.
 - `IndexableSet.copy()` forwards a duplicate key-function argument and raises.
 - `SegmentList.copy()` forwards an unsupported `key` keyword and raises.
 - `NearestDict.copy()` silently resets a non-default rounding policy.
 - `OrderedSet` slicing raises `TypeError` rather than returning a sequence.
+- `IndexableSet` difference/intersection/union/symmetric-difference result
+  builders and their operators forward duplicate key-function arguments.
+- `SegmentList` addition and ordinary multiplication pass an unsupported key
+  argument. Reflected multiplication (`2 * segment`) and in-place operations
+  take different runtime paths and succeed; tests distinguish these cases.
 
 The copy problems also occur through `copy.copy`. These stubs preserve intended
 return contracts without pretending to repair runtime behavior. Strict xfails

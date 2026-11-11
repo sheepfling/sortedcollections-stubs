@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
+
 from sortedcollections import (
     IndexableDict,
     IndexableSet,
@@ -224,3 +225,104 @@ def test_item_deepcopy_preserves_class_and_independent_values():
     assert type(copied) is ItemSortedDict
     copied["a"].append(2)
     assert values["a"] == [1]
+
+
+@pytest.mark.parametrize("factory", [IndexableDict, IndexableSet])
+def test_hash_order_range_helpers(factory):
+    values = factory([1, 3, 5] if factory is IndexableSet else {1: "a", 3: "b", 5: "c"})
+    assert values.key is hash
+    assert values.bisect_key_left(key=3) == 1
+    assert values.bisect_key_right(key=3) == 2
+    assert values.bisect_key(key=3) == 2
+    assert list(values.irange_key(min_key=1, max_key=3)) == [1, 3]
+    assert list(values.irange_key(min_key=1, max_key=5, inclusive=(False, False))) == [3]
+    assert list(values.irange_key(reverse=True)) == [5, 3, 1]
+
+
+@pytest.mark.parametrize("factory", [ItemSortedDict, ValueSortedDict])
+def test_value_order_range_helpers(factory):
+    callback = (lambda key, value: [len(value)]) if factory is ItemSortedDict else len
+    values = factory(callback, {"a": "x", "b": "yyy"})
+    middle = [2] if factory is ItemSortedDict else 2
+    assert values.bisect_key_left(key=middle) == 1
+    assert values.bisect_key_right(key=middle) == 1
+    assert values.bisect_key(key=middle) == 1
+    assert list(values.irange_key(max_key=middle)) == ["a"]
+    assert list(values.irange_key(min_key=middle, reverse=True)) == ["b"]
+
+
+def test_nearest_key_and_keyword_constructor_combinations():
+    for values in (
+        NearestDict(None, a=1),
+        NearestDict(str.lower, {"a": 1}, b=2, rounding=NearestDict.NEAREST_NEXT),
+    ):
+        assert values["a"] == 1
+        assert type(values) is NearestDict
+
+
+def test_ordered_set_iterable_and_reflected_operations():
+    values = OrderedSet([1, 2])
+    assert list(values | [2, "a"]) == [1, 2, "a"]
+    assert list([2, "a"] | values) == [1, 2, "a"]
+    assert list(values & [2, 3]) == [2]
+    assert list([2, 3] & values) == [2]
+    assert list(values - [2, 3]) == [1]
+    assert list([2, 3] - values) == [3]
+    assert list(values ^ [2, 3]) == [1, 3]
+    assert list([2, 3] ^ values) == [1, 3]
+    assert type(values | [3]) is OrderedSet
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["difference", "intersection", "union", "symmetric_difference",
+     "__sub__", "__and__", "__or__", "__xor__"],
+)
+@pytest.mark.xfail(
+    strict=True, raises=TypeError,
+    reason="2.1.0 IndexableSet result builders forward duplicate key constructor arguments",
+)
+def test_indexable_set_result_builders_preserve_class(method):
+    result = getattr(IndexableSet([1, 2]), method)([2, 3])
+    assert type(result) is IndexableSet
+
+
+@pytest.mark.parametrize("method, operand", [("__add__", [3]), ("__mul__", 2)])
+@pytest.mark.xfail(
+    strict=True, raises=TypeError,
+    reason="2.1.0 SegmentList result builders forward an unsupported key constructor argument",
+)
+def test_segment_result_builders_preserve_class(method, operand):
+    result = getattr(SegmentList([1, 2]), method)(operand)
+    assert type(result) is SegmentList
+
+
+def test_inplace_operators_avoid_broken_constructors():
+    values = IndexableSet([1, 2])
+    original = values
+    values |= [3]
+    assert values is original
+    assert list(values) == [1, 2, 3]
+    segment = SegmentList([1, 2])
+    original = segment
+    segment += [3]
+    segment *= 2
+    assert segment is original
+    assert list(segment) == [1, 2, 3, 1, 2, 3]
+
+
+
+def test_segment_reflected_multiply_preserves_class():
+    values = 2 * SegmentList([1, 2])
+    assert type(values) is SegmentList
+    assert list(values) == [1, 2, 1, 2]
+
+
+@pytest.mark.parametrize("factory", [IndexableDict, ValueSortedDict, NearestDict, OrderedDict])
+def test_inherited_factory_runtime_subclass_preservation(factory):
+    class Child(factory):
+        pass
+
+    values = Child.fromkeys([1, 2], "x")
+    assert type(values) is Child
+    assert dict(values) == {1: "x", 2: "x"}

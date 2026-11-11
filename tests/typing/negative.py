@@ -46,3 +46,9 @@ OrderedSet[int]().count(value=1)  # expected-error
 IndexableSet[int]([1], key=hash)  # expected-error
 SegmentList[int]([1], key=hash)  # expected-error
 IndexableDict.fromkeys(seq=[1], value="x")  # expected-error
+
+ids.bisect_key_left("bad")  # expected-error
+IndexableSet[int]([1]).irange_key(min_key="bad")  # expected-error
+values.bisect_key_left(object())  # expected-error
+values.irange_key(max_key=object())  # expected-error
+OrderedSet[int]([1]) | [[1]]  # expected-error

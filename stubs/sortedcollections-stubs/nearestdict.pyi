@@ -50,6 +50,25 @@ class NearestDict(SortedDict[_K, _V]):
     ) -> None: ...
     @overload
     def __init__(
+        self: NearestDict[str, _V2],
+        key: Callable[[str], SupportsRichComparison] | None,
+        /,
+        *,
+        rounding: _Rounding = ...,
+        **kwargs: _V2,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self: NearestDict[str, _V2],
+        key: Callable[[str], SupportsRichComparison] | None,
+        entries: SupportsKeysAndGetItem[str, _V2] | Iterable[tuple[str, _V2]],
+        /,
+        *,
+        rounding: _Rounding = ...,
+        **kwargs: _V2,
+    ) -> None: ...
+    @overload
+    def __init__(
         self,
         key: Callable[[_K], SupportsRichComparison] | None,
         entries: SupportsKeysAndGetItem[_K, _V] | Iterable[tuple[_K, _V]],

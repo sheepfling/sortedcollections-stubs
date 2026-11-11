@@ -1,4 +1,7 @@
+from collections.abc import Iterator
 from typing import Literal
+
+from typing_extensions import assert_type
 
 from sortedcollections import (
     IndexableDict,
@@ -11,7 +14,6 @@ from sortedcollections import (
     ValueSortedDict,
 )
 from sortedcollections.ordereddict import ItemsView, KeysView, ValuesView
-from typing_extensions import assert_type
 
 ids = IndexableDict({"a": 1})
 assert_type(ids, IndexableDict[str, int])
@@ -129,3 +131,37 @@ class SpecialSegment(SegmentList[str]):
 
 assert_type(SpecialSet(["a"]), SpecialSet)
 assert_type(SpecialSegment(["a"]), SpecialSegment)
+
+assert_type(ids.bisect_key_left(hash("a")), int)
+assert_type(ids.bisect_key_right(hash("a")), int)
+assert_type(ids.bisect_key(hash("a")), int)
+assert_type(ids.irange_key(min_key=0, max_key=10), Iterator[str])
+assert_type(objects.key(key), int)
+assert_type(SpecialSet(["a"]).irange_key(reverse=True), Iterator[str])
+assert_type(SpecialSet(["a"]).bisect_key_left(key=1), int)
+assert_type(items.bisect_key_left(key=1), int)
+assert_type(items.bisect_key_right(key=1), int)
+assert_type(items.bisect_key(key=1), int)
+assert_type(items.irange_key(min_key=1, inclusive=(True, False)), Iterator[str])
+assert_type(values.bisect_key_left(key=1), int)
+assert_type(values.bisect_key_right(key=1), int)
+assert_type(values.bisect_key(key=1), int)
+assert_type(values.irange_key(max_key=3, reverse=True), Iterator[str])
+
+
+def unhashable_order(value: str) -> list[int]:
+    return [len(value)]
+
+
+list_order = ValueSortedDict(unhashable_order, {1: "a", 2: "bbb"})
+assert_type(list_order, ValueSortedDict[int, str])
+assert_type(list_order.irange_key(max_key=[2]), Iterator[int])
+assert_type(NearestDict(None, a=1), NearestDict[str, int])
+assert_type(NearestDict(str.lower, {"a": 1}, b=2), NearestDict[str, int])
+assert_type(ordered_set | [1], OrderedSet[str | int])
+assert_type([1] | ordered_set, OrderedSet[str | int])
+assert_type(ordered_set & ["a"], OrderedSet[str])
+assert_type(ordered_set - ["a"], OrderedSet[str])
+assert_type([1] - ordered_set, OrderedSet[int])
+assert_type(ordered_set ^ [1], OrderedSet[str | int])
+assert_type([1] ^ ordered_set, OrderedSet[str | int])
