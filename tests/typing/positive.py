@@ -216,3 +216,20 @@ assert_type(Repetitions() * SpecialSegment(["a"]), SpecialSegment)
 repeatable = SpecialSegment(["a"])
 repeatable *= Repetitions()
 assert_type(repeatable, SpecialSegment)
+
+# A fallback makes a missing key of another type a valid lookup.
+ordered_pop = OrderedDict[str, int]({"a": 1})
+assert_type(ordered_pop.pop(7, None), int | None)
+assert_type(ordered_pop.pop(object(), [1]), int | list[int])
+assert_type(OrderedDict.fromkeys(["a"], None), OrderedDict[str, None])
+assert_type(OrderedDict.fromkeys(iterable=["a"], value=None), OrderedDict[str, None])
+
+
+def check_unrelated_pop_default(mapping: OrderedDict[str, int], default: str) -> None:
+    assert_type(mapping.pop(key=7, default=default), int | str)
+
+# Class-object annotations also retain specialization across construction.
+indexable_type: type[IndexableDict[str, int]] = IndexableDict[str, int]
+assert_type(indexable_type({"a": 1}), IndexableDict[str, int])
+segment_type: type[SegmentList[int]] = SegmentList[int]
+assert_type(segment_type([1, 2]), SegmentList[int])

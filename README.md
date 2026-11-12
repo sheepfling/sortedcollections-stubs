@@ -54,6 +54,7 @@ paths are not baked into distributed stubs.
 After installing the package, run these additional checks from the checkout:
 
 - `python -m tools.check_mypy`
+- `python -m tools.check_ty`
 - `python -m mypy --strict --python-version 3.10 -p sortedcollections`
 - `python -m mypy.stubtest sortedcollections --allowlist tests/stubtest.allowlist`
 - `python -m build`
@@ -101,9 +102,9 @@ commit `1a6a3457c94ee994d50514a59643ff7f55c7146b` (version 2.1.0) and public
 `970fec8846e05d523d2a6a600f7a49149880fa4a`. No employer code was used.
 
 Local verification used separately retrieved public sources because direct
-PyPI access was blocked. Pyright 1.1.414, MyPy 2.4.1, and stubtest were verified
+PyPI access was blocked. Pyright 1.1.414, MyPy 2.4.1, ty 0.0.100, and stubtest were verified
 on macOS, including an installed built wheel. Runtime tests pass on macOS
-Python 3.10 through 3.15 (110 passed and 25 strict released-runtime xfails on each
+Python 3.10 through 3.15 (165 passed and 25 strict released-runtime xfails on each
 interpreter). Dependency installation from PyPI and a cross-platform matrix
 remain unverified. Do not publish or treat this alpha prototype as complete.
 
@@ -143,3 +144,49 @@ or iterable pairs. OrderedDict nonmutating unions return a built-in dict.
 SegmentList forward, reflected, and in-place repetition accept integer-index
 objects. Tests distinguish the released forward-operation constructor defect
 from the working reflected and in-place paths.
+
+## Three-checker consumer gate
+
+`python -m tools.check_ty` checks installed-package consumers from a temporary
+project outside the checkout. It promotes all rules, including deprecations, to
+errors and verifies exact diagnostic file/line locations and exit status.
+`--python-executable` selects the installed-package environment without resolving
+away a virtual environment's interpreter symlink. `--python-version` selects
+Python 3.10 through 3.15, and `--ty` can select a separately installed checker.
+The runner does not download or provision dependencies.
+
+With ty 0.0.100, positive consumers pass and all 41 invalid-call locations are
+rejected (42 diagnostics). Unlike MyPy 2.4.1, ty rejects the three recorded
+constructor-specialization cases. The same four comparison-domain gaps remain
+explicitly reproduced. All six language-version settings pass against both
+installed delivery paths. This is consumer validation, not a clean direct ty
+audit of the declarations. The bundled declaration audit retains nine known
+incompatibilities: five inaccurate dependency signatures, three custom dict-view
+return types, and OrderedSet.index having a narrower runtime signature. No diagnostics were
+suppressed to turn that audit green. The existing Pyright, MyPy and stubtest
+gates remain separate. Twenty-eight new parser and runner regressions cover
+malformed reports, wrong files, severities, exit statuses and project isolation.
+
+
+The inherited-contract review widened only the fallback overload of
+`OrderedDict.pop` to accept an unrelated missing key, matching runtime and dict.
+Its `fromkeys` overload now explicitly includes the `None` default so ty can
+verify overload coverage. Eighteen runtime regressions and shared consumer cases
+cover these supported calls. The stricter no-default pop contract is unchanged.
+
+
+## Parameterized class compatibility
+
+All eight collection classes support `Class[Type]` (or `Class[Key, Value]`)
+subscription, construction and parameterized-base subclassing. For example,
+`IndexableDict[str, int]({"a": 1})` produces an ordinary IndexableDict, and
+`type[IndexableDict[str, int]]` can annotate a class object. Existing bare
+construction continues to work. The same runtime probes pass unchanged against
+upstream 2.1.0 and this fork on Python 3.10 through 3.15.
+
+These subscriptions are runtime metadata, not runtime value validation.
+`IndexableDict[str, int]({"a": "wrong"})` is still accepted by both runtimes.
+Pyright and ty flag that misuse statically; MyPy's three constructor gaps remain
+explicit. Typing support requires Python 3.10+, and no new promise is made about
+older interpreter validation. Each checker runner accepts `--python-version`
+for the six supported language settings.

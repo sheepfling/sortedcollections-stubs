@@ -12,7 +12,7 @@ readme = "README.md"
 classifiers = ["Typing :: Stubs Only", "Development Status :: 3 - Alpha"]
 
 [project.optional-dependencies]
-dev = ["build>=1.2", "mypy>=2.4.1,<2.5", "pyright>=1.1.414,<1.2", "pytest>=8", "ruff>=0.14"]
+dev = ["build>=1.2", "mypy>=2.4.1,<2.5", "pyright>=1.1.414,<1.2", "ty>=0.0.100,<0.1", "pytest>=8", "ruff>=0.14"]
 
 [tool.setuptools]
 package-dir = {"" = "stubs"}

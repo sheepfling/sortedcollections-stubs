@@ -13,6 +13,7 @@ from tools.check_types import CheckerReport, verify_contract
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--python-executable", type=Path)
+    parser.add_argument("--python-version", choices=[f"3.{n}" for n in range(10, 16)], default="3.10")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     for name in ("positive", "negative", "comparison_gaps"):
@@ -26,7 +27,7 @@ def main() -> int:
             "mypy-known-gap" in line or "comparison-known-gap" in line for line in lines
         )
         command = [
-            sys.executable, "-m", "mypy", "--strict", "--python-version", "3.10",
+            sys.executable, "-m", "mypy", "--strict", "--python-version", args.python_version,
             "--enable-error-code", "deprecated", "--no-incremental", "--output=json",
             str(fixture),
         ]

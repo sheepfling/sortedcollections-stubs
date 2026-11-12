@@ -57,6 +57,37 @@ class CheckerReport:
         return cls(tuple(parsed), 1)
 
     @classmethod
+    def from_ty_gitlab(cls, text: str, *, base_dir: Path) -> CheckerReport:
+        """Parse ty's GitLab diagnostics for one explicitly selected fixture.
+
+        The runner promotes every rule to an error. Any other severity fails
+        closed, rather than accidentally counting a warning as an expected error.
+        ty has no analyzed-file count; the runner supplies one existing file.
+        """
+        decoded: JsonValue = json.loads(text)
+        if not isinstance(decoded, list):
+            raise ValueError("ty diagnostics must be a list")
+        parsed = []
+        for raw in decoded:
+            diagnostic = _object(raw, "diagnostic")
+            if diagnostic.get("severity") != "major":
+                raise ValueError("ty diagnostic severity must be major")
+            rule: JsonValue = diagnostic.get("check_name")
+            if not isinstance(rule, str) or not rule:
+                raise ValueError("ty diagnostic rule must be nonempty")
+            location = _object(diagnostic.get("location"), "diagnostic location")
+            file: JsonValue = location.get("path")
+            if not isinstance(file, str) or not file:
+                raise ValueError("diagnostic file must be a nonempty path")
+            positions = _object(location.get("positions"), "diagnostic positions")
+            begin = _object(positions.get("begin"), "diagnostic begin")
+            number = _nonnegative_int(begin.get("line"), "diagnostic line")
+            if number == 0:
+                raise ValueError("ty diagnostic line must be positive")
+            parsed.append(Diagnostic((base_dir / file).resolve(), number - 1, "error"))
+        return cls(tuple(parsed), 1)
+
+    @classmethod
     def from_json(cls, text: str) -> CheckerReport:
         decoded: JsonValue = json.loads(text)
         report = _object(decoded, "report")
@@ -120,6 +151,7 @@ def verify_contract(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extra-path", action="append", default=[])
+    parser.add_argument("--python-version", choices=[f"3.{n}" for n in range(10, 16)], default="3.10")
     parser.add_argument("--stubs", type=Path)
     args = parser.parse_args()
     # This checkout-owned runner intentionally locates its sibling test fixtures.
@@ -139,7 +171,7 @@ def main() -> int:
             raise SystemExit(f"{name}: no stub files found at {fixture}")
         config = {
             "typeCheckingMode": "strict",
-            "pythonVersion": "3.10",
+            "pythonVersion": args.python_version,
             "include": [],
             "extraPaths": paths[1:] if name == "stubs" else paths,
             "reportMissingModuleSource": False,

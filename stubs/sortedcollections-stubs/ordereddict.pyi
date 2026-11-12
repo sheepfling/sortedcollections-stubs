@@ -54,7 +54,8 @@ class OrderedDict(dict[_K, _V]):
     @overload
     def pop(self, key: _K, default: _V) -> _V: ...
     @overload
-    def pop(self, key: _K, default: _V2) -> _V | _V2: ...
+    # Like dict.pop, a supplied fallback permits an unrelated missing key.
+    def pop(self, key: object, default: _V2) -> _V | _V2: ...
     @overload
     def setdefault(
         self: OrderedDict[_K, _V2 | None], key: _K, default: None = ...,
@@ -62,13 +63,15 @@ class OrderedDict(dict[_K, _V]):
     @overload
     def setdefault(self, key: _K, default: _V) -> _V: ...
     def copy(self) -> Self: ...
-    # Runtime returns this subclass; dict's invariant value type needs an override.
-    @classmethod  # type: ignore[override]
-    @overload
-    def fromkeys(cls, iterable: Iterable[_K2]) -> OrderedDict[_K2, None]: ...
+    # Preserve the runtime subclass and dict's explicit None-default branch.
     @classmethod
     @overload
-    def fromkeys(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def fromkeys(
+        cls, iterable: Iterable[_K2], value: None = ...,
+    ) -> OrderedDict[_K2, None]: ...
+    @classmethod
+    @overload
+    def fromkeys(
         cls, iterable: Iterable[_K2], value: _V2
     ) -> OrderedDict[_K2, _V2]: ...
     def _check(self) -> None: ...

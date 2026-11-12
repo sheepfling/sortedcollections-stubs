@@ -7,6 +7,7 @@ import subprocess
 import sys
 from copy import deepcopy
 from pathlib import Path
+from typing import get_args, get_origin
 
 import pytest
 
@@ -469,3 +470,58 @@ def test_segment_reflected_and_inplace_integer_index_repetition():
     values *= Repetitions()
     assert values is alias
     assert list(values) == [1, 2, 1, 2]
+
+
+@pytest.mark.parametrize("key", [7, None, ("absent",), object()])
+@pytest.mark.parametrize("fallback", [None, "absent", 42, []])
+def test_ordered_pop_unrelated_missing_key_preserves_default(key, fallback):
+    mapping = OrderedDict({"a": 1})
+    assert mapping.pop(key=key, default=fallback) is fallback
+    assert list(mapping.items()) == [("a", 1)]
+    mapping._check()
+
+
+@pytest.mark.parametrize("keyword", [False, True])
+def test_ordered_fromkeys_explicit_none(keyword):
+    mapping = (
+        OrderedDict.fromkeys(iterable=["a", "b"], value=None)
+        if keyword else OrderedDict.fromkeys(["a", "b"], None)
+    )
+    assert isinstance(mapping, OrderedDict)
+    assert list(mapping.items()) == [("a", None), ("b", None)]
+    mapping._check()
+
+
+@pytest.mark.parametrize(
+    ("factory", "parameters", "arguments"),
+    [
+        (IndexableDict, (str, int), ({"a": 1},)),
+        (IndexableSet, (int,), ([1, 2],)),
+        (ItemSortedDict, (str, int), (lambda key, value: value, {"a": 1})),
+        (ValueSortedDict, (str, int), ({"a": 1},)),
+        (NearestDict, (int, str), ({1: "a"},)),
+        (OrderedDict, (str, int), ({"a": 1},)),
+        (OrderedSet, (int,), ([1, 2],)),
+        (SegmentList, (int,), ([1, 2],)),
+    ],
+)
+def test_parameterized_classes_preserve_runtime_construction(factory, parameters, arguments):
+    alias = factory[parameters]
+    assert get_origin(alias) is factory
+    assert get_args(alias) == parameters
+    plain = factory(*arguments)
+    specialized = alias(*arguments)
+    assert type(specialized) is factory
+    assert specialized == plain
+
+    class Child(alias):
+        pass
+
+    child = Child(*arguments)
+    assert type(child) is Child
+    assert child == plain
+
+
+def test_runtime_specialization_does_not_enforce_value_annotations():
+    mapping = IndexableDict[str, int]({"a": "not-an-int"})
+    assert mapping["a"] == "not-an-int"
