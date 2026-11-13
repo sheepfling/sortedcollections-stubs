@@ -1,0 +1,19 @@
+{
+  "verification": {
+    "stubtest_module": "sortedcollections",
+    "stubtest_allowlist": "tests/stubtest.allowlist",
+    "positive_fixture": "tests/typing/positive.py",
+    "negative_fixture": "tests/typing/negative.py",
+    "typing_checkers": [
+      "mypy",
+      "pyright",
+      "ty"
+    ],
+    "runtime_distributions": [
+      "sortedcollections",
+      "sortedcontainers",
+      "sortedcontainers-stubs"
+    ],
+    "runtime_smoke_module": "tests.runtime_smoke"
+  }
+}

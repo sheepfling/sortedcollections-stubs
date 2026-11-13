@@ -1,0 +1,64 @@
+name: Verify merged candidate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target-python: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        id: checker
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-python@v5
+        id: target
+        with:
+          python-version: ${{ matrix.target-python }}
+      - name: Create isolated checker and target environments
+        run: |
+          "${{ steps.checker.outputs.python-path }}" -m venv "$RUNNER_TEMP/checker"
+          "${{ steps.target.outputs.python-path }}" -m venv "$RUNNER_TEMP/target"
+          echo "CHECKER_PYTHON=$RUNNER_TEMP/checker/bin/python" >> "$GITHUB_ENV"
+          echo "TARGET_PYTHON=$RUNNER_TEMP/target/bin/python" >> "$GITHUB_ENV"
+      - name: Install pinned shared checker tools
+        run: |
+          "$CHECKER_PYTHON" -m pip install --upgrade pip
+          "$CHECKER_PYTHON" -m pip install --group dev
+      - name: Install target runtime and native stubtest tools
+        run: |
+          "$TARGET_PYTHON" -m pip install --upgrade pip
+          "$TARGET_PYTHON" -m pip install --group target
+      - name: Repository quality
+        if: ${{ matrix.target-python == '3.12' }}
+        run: |
+          "$CHECKER_PYTHON" -m tests.ci quality
+      - name: Candidate compatibility
+        run: |
+          "$CHECKER_PYTHON" -m tests.ci target --target-python "$TARGET_PYTHON" \
+            --report "$RUNNER_TEMP/alphus-target-report.json"
+      - name: Package-specific typing limitations
+        run: |
+          "$CHECKER_PYTHON" -m tests.check_package --target-python "$TARGET_PYTHON"
+      - name: Transitional strict diagnostic boundaries
+        run: |
+          export PATH="$(dirname "$CHECKER_PYTHON"):$PATH"
+          "$CHECKER_PYTHON" -m tools.check_types --target-python "$TARGET_PYTHON" --python-version "${{ matrix.target-python }}"
+          "$CHECKER_PYTHON" -m tools.check_mypy --python-executable "$TARGET_PYTHON" --python-version "${{ matrix.target-python }}"
+          "$CHECKER_PYTHON" -m tools.check_ty --python-executable "$TARGET_PYTHON" --python-version "${{ matrix.target-python }}"

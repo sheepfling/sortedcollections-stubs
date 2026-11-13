@@ -25,11 +25,9 @@ all = "error"
 """
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target-python", required=True)
-    args = parser.parse_args()
-    target = probe_python(args.target_python)
+def check_inheritance(target_python: str) -> bool:
+    """Verify the package-owned inheritance contract with all three checkers."""
+    target = probe_python(target_python)
     passed = True
     with tempfile.TemporaryDirectory(prefix="sorted-inheritance-") as temporary:
         root = Path(temporary).resolve()
@@ -58,7 +56,14 @@ def main() -> int:
             passed = keyword_gap and passed
             if keyword_gap:
                 print(f"{checker.name}: request= runtime keyword: known checker difference reproduced")
-    return 0 if passed else 1
+    return passed
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--target-python", required=True)
+    args = parser.parse_args()
+    return 0 if check_inheritance(args.target_python) else 1
 
 
 if __name__ == "__main__":

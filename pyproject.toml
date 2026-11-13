@@ -14,6 +14,21 @@ classifiers = ["Typing :: Stubs Only", "Development Status :: 3 - Alpha"]
 [project.optional-dependencies]
 dev = ["build>=1.2", "mypy>=2.4.1,<2.5", "pyright>=1.1.414,<1.2", "ty>=0.0.100,<0.1", "pytest>=8", "ruff>=0.14"]
 
+dev-experimental = ["alphus @ git+https://github.com/sheepfling/alphus.git@v0.0.3"]
+
+[dependency-groups]
+dev = [
+    "alphus @ git+https://github.com/sheepfling/alphus.git@v0.0.3",
+    "build>=1.2", "mdrepo>=0.0.1.post0", "mypy>=2.4.1,<2.5",
+    "pyright>=1.1.414,<1.2", "ty>=0.0.100,<0.1", "pytest>=8",
+    "ruff>=0.14", "rumdl>=0.2.77", "twine>=7.0", "setuptools>=68", "wheel",
+]
+target = [
+    "build>=1.2", "mypy>=2.4.1,<2.5", "pytest>=8", "setuptools>=68", "wheel",
+    "sortedcollections==2.1.0", "sortedcontainers==2.4.0",
+    "sortedcontainers-stubs>=2.4.3,<2.5", "typing-extensions>=4.6",
+]
+
 [tool.setuptools]
 package-dir = {"" = "stubs"}
 packages = ["sortedcollections-stubs"]
@@ -32,3 +47,14 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["sortedcollections"]
+
+[tool.mypy]
+enable_error_code = ["deprecated"]
+
+[tool.ty.rules]
+all = "error"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+reportDeprecated = "error"
+reportMissingModuleSource = false

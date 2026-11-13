@@ -24,14 +24,14 @@ def main() -> int:
         project = Path(temporary).resolve()
         config = project / "ty.toml"
         config.write_text("", encoding="utf-8")
-        for name in ("positive", "negative", "comparison_gaps"):
+        for name in ("positive", "negative", "constructor_gaps", "comparison_gaps"):
             source = root / "tests" / "typing" / f"{name}.py"
             content = source.read_text(encoding="utf-8")
             fixture = project / source.name
             fixture.write_text(content, encoding="utf-8")
             expected = {
                 index for index, line in enumerate(content.splitlines())
-                if "# expected-error" in line
+                if "# expect-error" in line
             }
             known_gaps = sum("comparison-known-gap" in line for line in content.splitlines())
             command = [
@@ -53,7 +53,7 @@ def main() -> int:
                 print(result.stdout)
                 print(result.stderr)
                 raise SystemExit(f"{name}: invalid ty result: {exc}") from exc
-            status = "known limitations reproduced" if name == "comparison_gaps" else "passed"
+            status = "known limitations reproduced" if name in ("comparison_gaps", "constructor_gaps") else "passed"
             print(f"{name}: {errors} expected diagnostics; {known_gaps} known ty gaps; {status}")
     return 0
 

@@ -101,18 +101,20 @@ commit `1a6a3457c94ee994d50514a59643ff7f55c7146b` (version 2.1.0) and public
 `h4l/sortedcontainers-stubs` commit
 `970fec8846e05d523d2a6a600f7a49149880fa4a`. No employer code was used.
 
-Local verification used separately retrieved public sources because direct
-PyPI access was blocked. Pyright 1.1.414, MyPy 2.4.1, ty 0.0.100, and stubtest were verified
-on macOS, including an installed built wheel. Runtime tests pass on macOS
-Python 3.10 through 3.15 (165 passed and 25 strict released-runtime xfails on each
-interpreter). Dependency installation from PyPI and a cross-platform matrix
-remain unverified. Do not publish or treat this alpha prototype as complete.
+Current local verification uses genuine installed upstream runtime wheels with
+separate checker and target environments on macOS Python 3.10 through 3.15.
+The [development guide](DEVELOPMENT.md) describes the shared gate, required
+package-specific lanes and retained native diagnostic-boundary checks. A
+successful consumer matrix is not a clean declaration audit: the nine known
+Ty findings and isolated dependency corrections remain documented in the
+[inheritance audit](TYPING-INHERITANCE.md). Hosted cross-platform results are not
+established by these local runs. No publication or completeness claim is made.
 
 ## Known runtime defects exposed by contract tests
 
-Verification uses the upstream 2.1.0 public source snapshot and the
-`sortedcontainers` v2.4.0 tagged source, not
-installed PyPI runtime wheels. Twenty-five strict expected-failure cases record:
+The initial source-snapshot probes are now reproduced against installed
+sortedcollections 2.1.0 and sortedcontainers 2.4.0 wheels. Twenty-six strict
+expected-failure cases record:
 
 - Mapping unions on IndexableDict, ItemSortedDict, and ValueSortedDict raise;
   NearestDict unions reset rounding. Both directions are recorded.
@@ -122,6 +124,7 @@ installed PyPI runtime wheels. Twenty-five strict expected-failure cases record:
 - `SegmentList.copy()` forwards an unsupported `key` keyword and raises.
 - `NearestDict.copy()` silently resets a non-default rounding policy.
 - `OrderedSet` slicing raises `TypeError` rather than returning a sequence.
+- `OrderedSet.index` returns insertion counters, not positions, after removal.
 - `IndexableSet` difference/intersection/union/symmetric-difference result
   builders and their operators forward duplicate key-function arguments.
 - `SegmentList` addition and ordinary multiplication pass an unsupported key
@@ -167,9 +170,10 @@ suppressed to turn that audit green. The existing Pyright, MyPy and stubtest
 gates remain separate. Twenty-eight new parser and runner regressions cover
 malformed reports, wrong files, severities, exit statuses and project isolation.
 
-See the [installed inheritance audit](TYPING-INHERITANCE.md) for the runtime
-evidence, two reviewed dependency corrections and reproducible checker results.
-The four genuine runtime conflicts remain visible; no new suppressions are added.
+The [installed inheritance audit](TYPING-INHERITANCE.md) maps every finding to
+runtime behavior. An isolated three-line dependency correction reduces nine Ty
+findings to the four genuine runtime conflicts, with no new suppressions. The
+published dependency still has all nine; this is not a clean declaration gate.
 
 The inherited-contract review widened only the fallback overload of
 `OrderedDict.pop` to accept an unrelated missing key, matching runtime and dict.
@@ -192,3 +196,15 @@ Pyright and ty flag that misuse statically; MyPy's three constructor gaps remain
 explicit. Typing support requires Python 3.10+, and no new promise is made about
 older interpreter validation. Each checker runner accepts `--python-version`
 for the six supported language settings.
+
+## Shared gate migration
+
+The `dev` dependency group pins Alphus to the `v0.0.3` Git tag; the optional
+`dev-experimental` extra remains a compatibility installation path to the same
+pin. Alphus is a development tool, not a runtime dependency of these stubs.
+The common `tests.ci` entry point already uses its installed-package gates.
+Package-owned `tests.check_package` adds the inheritance and known-gap fixtures.
+The existing native runners remain until complete diagnostic-boundary parity is
+proven; they are additional validation, not a replacement for the common runner.
+See [Development and verification](DEVELOPMENT.md) for the shared environment
+setup and the required package-specific lanes.

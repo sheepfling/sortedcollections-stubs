@@ -127,12 +127,13 @@ chosen Python 3.10–3.15 interpreter. Then use the checker environment to run
 `python -m tools.check_inheritance --target-python TARGET`. The existing native
 `tools.check_types`, `tools.check_mypy` and `tools.check_ty` commands remain
 separate required checks; their known limitations are not hidden by this audit.
-Run the runtime pytest suite with the target interpreter. The existing suite
-also invokes Pyright: keep the checker environment's executable directory on
-`PATH` and set `SORTEDCOLLECTIONS_TEST_PATHS` to the target's site-packages
-(directory returned by `TARGET -c 'import sysconfig; print(sysconfig.get_path("purelib"))'`).
-This supplies the installed dependency declarations to that existing check;
-otherwise it can report missing dependency types despite a correct target install.
+Run the runtime pytest suite with the target interpreter. Shared CI invokes the
+native checker lanes separately with an explicit installed target; runtime
+pytest no longer starts a source-resolution Pyright subprocess. The common
+adapter is `python -m tests.ci target --target-python TARGET`, followed by
+`python -m tests.check_package --target-python TARGET` and the three documented
+native lanes. The package adapter reuses the standalone inheritance runner
+rather than duplicating its configuration or diagnostic expectations.
 
 With that installed Alphus build, run the unsuppressed declaration audit:
 

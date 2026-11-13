@@ -1,0 +1,22 @@
+schema_version = 1
+
+[files]
+include = ["stubs/**/*.pyi", "tests/**/*.py", "tools/**/*.py", "*.md", "*.toml"]
+exclude = []
+
+[orchestration]
+default_profile = "quality"
+
+[[orchestration.steps]]
+kind = "command"
+name = "Python lint"
+argv = ["{python}", "-m", "ruff", "check", "."]
+
+[[orchestration.steps]]
+kind = "command"
+name = "Markdown style"
+argv = ["rumdl", "check", "README.md", "DEVELOPMENT.md", "TYPING-INHERITANCE.md", "--disable", "MD013"]
+
+[[orchestration.profiles]]
+name = "quality"
+steps = ["Python lint", "Markdown style"]

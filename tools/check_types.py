@@ -148,23 +148,49 @@ def verify_contract(
     return len(errors)
 
 
+def relative_include(fixture: Path, config_directory: Path) -> str:
+    """Resolve the config base before computing a path consumed by Pyright."""
+    return os.path.relpath(fixture.resolve(), config_directory.resolve())
+
+
+def pyright_command(config: Path, target_python: str | None) -> list[str]:
+    """Use the selected target for fallback imports, not the checker environment."""
+    command = ["pyright", "-p", str(config), "--outputjson"]
+    if target_python is not None:
+        command.extend(["--pythonpath", target_python])
+    return command
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extra-path", action="append", default=[])
     parser.add_argument("--python-version", choices=[f"3.{n}" for n in range(10, 16)], default="3.10")
     parser.add_argument("--stubs", type=Path)
+    parser.add_argument("--target-python", help="Use installed stubs and dependencies from this target")
     args = parser.parse_args()
     # This checkout-owned runner intentionally locates its sibling test fixtures.
     root = Path(__file__).resolve().parents[1]
     paths = [str(Path(path).resolve()) for path in args.extra_path]
+    if args.target_python:
+        if args.stubs is not None or paths:
+            parser.error("--target-python cannot be combined with --stubs or --extra-path")
+        probe = subprocess.run(
+            [args.target_python, "-c", "from importlib.metadata import distribution; "
+             "print(distribution('sortedcollections-stubs').locate_file('sortedcollections-stubs'))"],
+            check=True, capture_output=True, text=True,
+        )
+        args.stubs = Path(probe.stdout.strip()).resolve()
+        if not args.stubs.is_dir():
+            parser.error("installed stub directory is missing in target")
+        paths.append(str(args.stubs.parent))
     paths.insert(0, str(root / "stubs" if args.stubs is None else args.stubs.resolve()))
-    for name in ("positive", "negative", "comparison_gaps", "stubs"):
+    for name in ("positive", "negative", "constructor_gaps", "comparison_gaps", "stubs"):
         fixture = Path(paths[0]) if name == "stubs" else root / "tests" / "typing" / f"{name}.py"
         expected = set()
         known_gaps = 0
         if name != "stubs":
             lines = fixture.read_text(encoding="utf-8").splitlines()
-            expected = {i for i, line in enumerate(lines) if "# expected-error" in line}
+            expected = {i for i, line in enumerate(lines) if "# expect-error" in line}
             known_gaps = sum("comparison-known-gap" in line for line in lines)
         expected_files = len(list(fixture.rglob("*.pyi"))) if name == "stubs" else 1
         if expected_files < 1:
@@ -181,11 +207,12 @@ def main() -> int:
             path = Path(temp) / "pyrightconfig.json"
             # Pyright requires relative include paths; support Python 3.10 as well.
             config["include"] = [
-                os.path.relpath(fixture, temp) + ("/**/*.pyi" if name == "stubs" else "")
+                relative_include(item, Path(temp))
+                for item in (sorted(fixture.rglob("*.pyi")) if name == "stubs" else [fixture])
             ]
             path.write_text(json.dumps(config), encoding="utf-8")
             result = subprocess.run(
-                ["pyright", "-p", str(path), "--outputjson"],
+                pyright_command(path, args.target_python),
                 capture_output=True,
                 text=True,
                 check=False,
@@ -200,7 +227,7 @@ def main() -> int:
             print(result.stdout)
             print(result.stderr)
             raise SystemExit(f"{name}: invalid checker result: {exc}") from exc
-        status = "known limitations reproduced" if name == "comparison_gaps" else "passed"
+        status = "known limitations reproduced" if name in ("comparison_gaps", "constructor_gaps") else "passed"
         print(f"{name}: {error_count} expected diagnostics; {known_gaps} known gaps; {status}")
     return 0
 

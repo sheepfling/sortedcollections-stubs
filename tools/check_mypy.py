@@ -16,12 +16,12 @@ def main() -> int:
     parser.add_argument("--python-version", choices=[f"3.{n}" for n in range(10, 16)], default="3.10")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    for name in ("positive", "negative", "comparison_gaps"):
+    for name in ("positive", "negative", "constructor_gaps", "comparison_gaps"):
         fixture = root / "tests" / "typing" / f"{name}.py"
         lines = fixture.read_text(encoding="utf-8").splitlines()
         expected = {
             number for number, line in enumerate(lines)
-            if "# expected-error" in line and "mypy-known-gap" not in line
+            if "# expect-error" in line and "mypy-known-gap" not in line
         }
         known_gaps = sum(
             "mypy-known-gap" in line or "comparison-known-gap" in line for line in lines
@@ -44,7 +44,7 @@ def main() -> int:
             print(result.stdout)
             print(result.stderr)
             raise SystemExit(f"{name}: invalid MyPy result: {exc}") from exc
-        status = "known limitations reproduced" if name == "comparison_gaps" else "passed"
+        status = "known limitations reproduced" if name in ("comparison_gaps", "constructor_gaps") else "passed"
         print(f"{name}: {errors} expected diagnostics; {known_gaps} known MyPy gaps; {status}")
     return 0
 

@@ -1,5 +1,6 @@
 recursive-include tests *.py
 include tests/stubtest.allowlist
 recursive-include tools *.py
+include stub-quality.json quality-gates.toml DEVELOPMENT.md
 include TYPING-INHERITANCE.md
 recursive-include patches *.patch

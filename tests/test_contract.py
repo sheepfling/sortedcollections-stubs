@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
 from copy import deepcopy
-from pathlib import Path
 from typing import get_args, get_origin
 
 import pytest
@@ -57,15 +53,6 @@ def test_constructor_subclass_preservation():
         pass
 
     assert type(Child({"a": 1})) is Child
-
-
-def test_typecheck_contract():
-    root = Path(__file__).resolve().parents[1]
-    command = [sys.executable, str(root / "tools" / "check_types.py")]
-    for path in os.environ.get("SORTEDCOLLECTIONS_TEST_PATHS", "").split(os.pathsep):
-        if path:
-            command.extend(["--extra-path", path])
-    subprocess.run(command, check=True)
 
 
 @pytest.mark.parametrize("mapping", [IndexableDict({"a": 1}), IndexableSet(["a"])])

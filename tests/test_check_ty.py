@@ -110,7 +110,7 @@ def test_ty_runner_checks_copied_fixtures_without_checkout_config(monkeypatch, t
         errors = [
             payload(fixture.name, index + 1)
             for index, line in enumerate(fixture.read_text().splitlines())
-            if "# expected-error" in line
+            if "# expect-error" in line
         ]
         calls.append(fixture.name)
         return subprocess.CompletedProcess(command, int(bool(errors)), json.dumps(errors), "")
@@ -120,4 +120,4 @@ def test_ty_runner_checks_copied_fixtures_without_checkout_config(monkeypatch, t
         "check_ty", "--python-executable", str(python), "--python-version", "3.15",
     ])
     assert check_ty.main() == 0
-    assert calls == ["positive.py", "negative.py", "comparison_gaps.py"]
+    assert calls == ["positive.py", "negative.py", "constructor_gaps.py", "comparison_gaps.py"]
