@@ -1,3 +1,5 @@
 recursive-include tests *.py
 include tests/stubtest.allowlist
 recursive-include tools *.py
+include TYPING-INHERITANCE.md
+recursive-include patches *.patch

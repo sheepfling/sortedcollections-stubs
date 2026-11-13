@@ -167,13 +167,15 @@ suppressed to turn that audit green. The existing Pyright, MyPy and stubtest
 gates remain separate. Twenty-eight new parser and runner regressions cover
 malformed reports, wrong files, severities, exit statuses and project isolation.
 
+See the [installed inheritance audit](TYPING-INHERITANCE.md) for the runtime
+evidence, two reviewed dependency corrections and reproducible checker results.
+The four genuine runtime conflicts remain visible; no new suppressions are added.
 
 The inherited-contract review widened only the fallback overload of
 `OrderedDict.pop` to accept an unrelated missing key, matching runtime and dict.
 Its `fromkeys` overload now explicitly includes the `None` default so ty can
 verify overload coverage. Eighteen runtime regressions and shared consumer cases
 cover these supported calls. The stricter no-default pop contract is unchanged.
-
 
 ## Parameterized class compatibility
 
